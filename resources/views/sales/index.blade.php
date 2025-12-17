@@ -40,11 +40,12 @@
     </div>
     @endif
 
-    <div class="bg-white rounded-2xl shadow-lg">
+    <div class="bg-white rounded-2xl shadow-lg overflow-x-auto">
         <table class="min-w-full divide-y divide-gray-200">
             <thead class="bg-green-700 text-white rounded-t-xl">
                 <tr>
                     <th class="py-3 px-4 text-left text-sm font-semibold">Customer</th>
+                    <th class="py-3 px-4 text-left text-sm font-semibold">Products</th>
                     <th class="py-3 px-4 text-left text-sm font-semibold">Cashier</th>
                     <th class="py-3 px-4 text-left text-sm font-semibold">Date</th>
                     <th class="py-3 px-4 text-right text-sm font-semibold">Total Amount</th>
@@ -60,7 +61,8 @@
                     data-cashier="{{ strtolower(($transaction->user ? $transaction->user->fname . ' ' . $transaction->user->lname : '')) }}"
                     data-payment="{{ strtolower($transaction->payment_method) }}"
                     data-status="{{ strtolower($transaction->status) }}"
-                    data-date="{{ $transaction->transaction_date }}">
+                    data-date="{{ $transaction->transaction_date }}"
+                    data-products="{{ strtolower($transaction->details->pluck('product.Product_Name')->implode(' ')) }}">
                     
                     <td class="py-3 px-4 text-sm text-gray-800">
                         @if($transaction->customer)
@@ -68,6 +70,26 @@
                         @else
                             <span class="text-gray-500 italic">Walk-in Customer</span>
                         @endif
+                    </td>
+                    <td class="py-3 px-4 text-sm text-gray-700">
+                        <div class="max-w-xs">
+                            @if($transaction->details && $transaction->details->count() > 0)
+                                @foreach($transaction->details->take(2) as $detail)
+                                    <div class="flex items-center gap-1 text-xs">
+                                        <span class="text-green-600">•</span>
+                                        <span>{{ $detail->product->Product_Name }}</span>
+                                        <span class="text-gray-500">({{ $detail->Quantity }}{{ $detail->product->variety ? ' - ' . $detail->product->variety : '' }})</span>
+                                    </div>
+                                @endforeach
+                                @if($transaction->details->count() > 2)
+                                    <div class="text-xs text-blue-600 font-medium mt-1">
+                                        +{{ $transaction->details->count() - 2 }} more
+                                    </div>
+                                @endif
+                            @else
+                                <span class="text-gray-400 text-xs italic">No products</span>
+                            @endif
+                        </div>
                     </td>
                     <td class="py-3 px-4 text-sm text-gray-700">{{ $transaction->user ? ($transaction->user->fname . ' ' . $transaction->user->lname) : 'N/A' }}</td>
                     <td class="py-3 px-4 text-sm text-gray-700">{{ \Carbon\Carbon::parse($transaction->transaction_date)->format('M d, Y') }}</td>
@@ -128,7 +150,7 @@
                 </tr>
                 @empty
                 <tr id="noResults">
-                    <td colspan="7" class="py-8 px-4 text-center text-gray-500">No transactions found</td>
+                    <td colspan="8" class="py-8 px-4 text-center text-gray-500">No transactions found</td>
                 </tr>
                 @endforelse
             </tbody>
@@ -181,7 +203,7 @@
             </button>
         </div>
         <div id="modalContent" class="p-6">
-            </div>
+        </div>
     </div>
 </div>
 
@@ -189,17 +211,14 @@
 document.addEventListener('DOMContentLoaded', function() {
     const searchInput = document.getElementById('searchInput');
     const tableBody = document.getElementById('salesTableBody');
-    // Select the specific rows by class
     const rows = Array.from(tableBody.querySelectorAll('tr.transaction-row')); 
     const noResults = document.getElementById('noResults');
     const numberedButtonsContainer = document.getElementById('numberedButtonsContainer');
     
-    // Pagination Config
     const itemsPerPage = 10;
     let currentPage = 1;
-    let filteredRows = rows; // Initially all rows are visible
+    let filteredRows = rows;
 
-    // Elements
     const pageStart = document.getElementById('pageStart');
     const pageEnd = document.getElementById('pageEnd');
     const totalItems = document.getElementById('totalItems');
@@ -212,17 +231,14 @@ document.addEventListener('DOMContentLoaded', function() {
         const totalRows = filteredRows.length;
         const totalPages = Math.ceil(totalRows / itemsPerPage);
 
-        // Sanity check
         if (currentPage < 1) currentPage = 1;
         if (currentPage > totalPages && totalPages > 0) currentPage = totalPages;
 
         const start = (currentPage - 1) * itemsPerPage;
         const end = start + itemsPerPage;
 
-        // Hide ALL rows first
         rows.forEach(row => row.style.display = 'none');
 
-        // Show only visible rows for current page
         if (totalRows > 0) {
             filteredRows.slice(start, end).forEach(row => row.style.display = '');
             if(noResults) noResults.style.display = 'none';
@@ -237,12 +253,10 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
 
-        // Update Text Stats
         totalItems.textContent = totalRows;
         pageStart.textContent = totalRows === 0 ? 0 : start + 1;
         pageEnd.textContent = Math.min(end, totalRows);
 
-        // Button States
         const isFirst = currentPage === 1;
         const isLast = currentPage === totalPages || totalPages === 0;
 
@@ -259,10 +273,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
 
-        // ---------------------------------------------
-        // DYNAMIC NUMBERED BUTTONS GENERATION
-        // ---------------------------------------------
-        numberedButtonsContainer.innerHTML = ''; // Reset
+        numberedButtonsContainer.innerHTML = '';
 
         for (let i = 1; i <= totalPages; i++) {
             const btn = document.createElement('button');
@@ -270,10 +281,8 @@ document.addEventListener('DOMContentLoaded', function() {
             let classes = "relative inline-flex items-center px-4 py-2 border text-sm font-medium";
             
             if (i === currentPage) {
-                // Active Page (Green for Sales Page)
                 classes += " z-10 bg-green-50 border-green-500 text-green-600";
             } else {
-                // Inactive Page (White)
                 classes += " bg-white border-gray-300 text-gray-500 hover:bg-gray-50";
             }
             
@@ -287,7 +296,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // Prev/Next Logic
     function changePage(delta) {
         currentPage += delta;
         updateTable();
@@ -298,35 +306,32 @@ document.addEventListener('DOMContentLoaded', function() {
     mobilePrevBtn.addEventListener('click', () => changePage(-1));
     mobileNextBtn.addEventListener('click', () => changePage(1));
 
-    // Search Logic
     searchInput.addEventListener('input', function() {
         const searchTerm = this.value.toLowerCase().trim();
         
-        // Filter rows based on criteria
         filteredRows = rows.filter(row => {
             const customer = row.getAttribute('data-customer') || '';
             const cashier = row.getAttribute('data-cashier') || '';
             const payment = row.getAttribute('data-payment') || '';
             const status = row.getAttribute('data-status') || '';
             const date = row.getAttribute('data-date') || '';
+            const products = row.getAttribute('data-products') || '';
             
             return customer.includes(searchTerm) || 
                    cashier.includes(searchTerm) || 
                    payment.includes(searchTerm) ||
                    status.includes(searchTerm) ||
-                   date.includes(searchTerm);
+                   date.includes(searchTerm) ||
+                   products.includes(searchTerm);
         });
 
-        // Reset to Page 1 when searching
         currentPage = 1;
         updateTable();
     });
 
-    // Initialize
     updateTable();
 });
 
-// Modal Functions (kept global as per original code structure)
 function viewTransaction(transactionId) {
     document.getElementById('transactionModal').classList.remove('hidden');
     

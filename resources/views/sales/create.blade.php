@@ -1,5 +1,5 @@
 {{-- =================================================================
-    SALES/CREATE.BLADE.PHP - Copy this entire file
+    SALES/CREATE.BLADE.PHP - Auto-detect logged-in user as cashier
    ================================================================= --}}
 @extends('layouts.app')
 
@@ -32,15 +32,19 @@
             </select>
         </div>
 
-        <!-- Cashier -->
+        <!-- Cashier - Hidden but auto-filled with logged-in user -->
+        <input type="hidden" name="User_ID" value="{{ auth()->user()->User_ID }}">
+        
+        <!-- Display Cashier Info (Read-only) -->
         <div>
             <label class="block text-gray-700 font-semibold mb-1">Cashier</label>
-            <select name="User_ID" class="w-full border p-3 rounded-lg focus:ring-2 focus:ring-green-500" required>
-                <option value="">Select Cashier</option>
-                @foreach($users as $user)
-                    <option value="{{ $user->User_ID }}">{{ $user->fname }} {{ $user->lname }}</option>
-                @endforeach
-            </select>
+            <div class="w-full border p-3 rounded-lg bg-gray-50 text-gray-700 flex items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-green-600" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd" />
+                </svg>
+                <span class="font-medium">{{ auth()->user()->fname }} {{ auth()->user()->lname }}</span>
+                <span class="ml-2 text-sm text-gray-500">({{ ucfirst(auth()->user()->role) }})</span>
+            </div>
         </div>
 
         <!-- Payment Method -->

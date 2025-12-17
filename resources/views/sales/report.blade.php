@@ -185,7 +185,7 @@
                 <div class="flex-1 max-w-md">
                     <input type="text" 
                            id="searchInput"
-                           placeholder="Search by receipt, customer, payment, or status..." 
+                           placeholder="Search by receipt, customer, product, payment, or status..." 
                            class="w-full px-4 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent">
                 </div>
             </div>
@@ -207,7 +207,7 @@
                             <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Receipt #</th>
                             <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Date</th>
                             <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Customer</th>
-                            <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Items</th>
+                            <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Products</th>
                             <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Payment</th>
                             <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Status</th>
                             <th class="px-6 py-4 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">Total</th>
@@ -221,7 +221,8 @@
                                 data-customer="{{ strtolower($sale->customer ? $sale->customer->Customer_Name : 'walk-in customer') }}"
                                 data-receipt="{{ strtolower($sale->receipt_number) }}"
                                 data-payment="{{ strtolower($sale->payment_method) }}"
-                                data-status="{{ strtolower($sale->status) }}">
+                                data-status="{{ strtolower($sale->status) }}"
+                                data-products="{{ strtolower($sale->details->pluck('product.Product_Name')->implode(' ')) }}">
                                 <td class="px-6 py-4 whitespace-nowrap">
                                     <span class="text-sm font-semibold text-gray-900">{{ $sale->receipt_number }}</span>
                                 </td>
@@ -238,8 +239,25 @@
                                         </div>
                                     @endif
                                 </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                                    {{ $sale->total_items }} items
+                                <td class="px-6 py-4">
+                                    <div class="max-w-xs">
+                                        @if($sale->details && $sale->details->count() > 0)
+                                            @foreach($sale->details->take(2) as $detail)
+                                                <div class="flex items-center gap-1 text-xs mb-1">
+                                                    <span class="text-green-600">•</span>
+                                                    <span class="text-gray-700">{{ $detail->product->Product_Name }}</span>
+                                                    <span class="text-gray-500">({{ $detail->Quantity }}{{ $detail->product->variety ? ' - ' . $detail->product->variety : '' }})</span>
+                                                </div>
+                                            @endforeach
+                                            @if($sale->details->count() > 2)
+                                                <div class="text-xs text-blue-600 font-medium">
+                                                    +{{ $sale->details->count() - 2 }} more
+                                                </div>
+                                            @endif
+                                        @else
+                                            <span class="text-gray-400 text-xs italic">No products</span>
+                                        @endif
+                                    </div>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap">
                                     <span class="text-sm text-gray-600">{{ $sale->payment_method }}</span>
@@ -414,7 +432,7 @@ document.addEventListener('DOMContentLoaded', function() {
     mobilePrevBtn.addEventListener('click', () => changePage(-1));
     mobileNextBtn.addEventListener('click', () => changePage(1));
 
-    // Search Logic
+    // Search Logic - Now includes product search
     searchInput.addEventListener('input', function() {
         const searchTerm = this.value.toLowerCase().trim();
         
@@ -424,11 +442,13 @@ document.addEventListener('DOMContentLoaded', function() {
             const receipt = row.getAttribute('data-receipt') || '';
             const payment = row.getAttribute('data-payment') || '';
             const status = row.getAttribute('data-status') || '';
+            const products = row.getAttribute('data-products') || '';
             
             return customer.includes(searchTerm) || 
                    receipt.includes(searchTerm) ||
                    payment.includes(searchTerm) ||
-                   status.includes(searchTerm);
+                   status.includes(searchTerm) ||
+                   products.includes(searchTerm);
         });
 
         // Reset to Page 1 when searching
@@ -458,7 +478,7 @@ function printSalesHistory() {
             <style>
                 body { font-family: Arial, sans-serif; padding: 20px; }
                 table { width: 100%; border-collapse: collapse; }
-                th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+                th, td { border: 1px solid #ccc; padding: 8px; text-align: left; font-size: 12px; }
                 th { background-color: #f5f5f5; }
                 h1 { text-align: center; margin-bottom: 4px; font-size: 20px; }
                 h2 { text-align: center; margin-top: 0; margin-bottom: 16px; font-size: 16px; }
