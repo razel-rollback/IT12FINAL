@@ -11,7 +11,8 @@ return new class extends Migration
         Schema::create('login_audit_logs', function (Blueprint $table) {
             $table->id();
             $table->string('email');
-            $table->foreignId('user_id')->nullable()->constrained('users')->onDelete('cascade');
+            $table->unsignedBigInteger('user_id')->nullable();
+            
             $table->string('status'); // 'success', 'failed', 'locked'
             $table->string('ip_address')->nullable();
             $table->text('user_agent')->nullable();
@@ -19,6 +20,8 @@ return new class extends Migration
             $table->integer('attempts_count')->default(1);
             $table->timestamp('locked_until')->nullable();
             $table->timestamps();
+            
+            $table->foreign('user_id')->references('User_ID')->on('users')->onDelete('cascade');
         });
     }
 
